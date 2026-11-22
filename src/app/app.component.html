@@ -1,0 +1,116 @@
+<main>
+  <header><i aria-hidden="true"></i> Moveset coverage</header>
+  <section>
+    <h1>Choose your game</h1>
+    <p>Your game determines the moves you can learn. Choose a fully evolved or single-stage Pokémon from your Pokédex.</p>
+    <div class="filters">
+      <label>Generation
+        <select #inputGeneration [value]="generation" [disabled]="!generations.length" (change)="selectGeneration(inputGeneration.value)">
+          <option value="" disabled>Choose Generation</option>
+          @for (item of generations; track item.url) {
+            <option [value]="item.url">{{ item.name.replace('generation-', '').toUpperCase() }}</option>
+          }
+        </select>
+      </label>
+      <label>Game
+        <select #inputGame [value]="game" [disabled]="!games.length" (change)="selectGame(inputGame.value)">
+          <option value="" disabled>Choose Game</option>
+          @for (item of games; track item.url) {
+            <option [value]="item.url">{{ item.name.split('-').join(' ') }}</option>
+          }
+        </select>
+      </label>
+      <label>Pokédex
+        <select #inputDex [value]="dex" [disabled]="!dexes.length" (change)="selectDex(inputDex.value)">
+          <option value="" disabled>Choose Pokédex</option>
+          @for (item of dexes; track item.url) {
+            <option [value]="item.url">{{ item.name.split('-').join(' ') }}</option>
+          }
+        </select>
+      </label>
+    </div>
+    @if (dex) {
+      <div class="pokemon-picker">
+        <label>Pokémon
+          <select #attacker [value]="speciesUrl" [disabled]="!roster.length" (change)="selectPokemon(attacker.value)">
+            <option value="" disabled>Choose Pokémon</option>
+            @for (species of roster; track species.url) {
+              <option [value]="species.url">{{ species.name }}</option>
+            }
+          </select>
+        </label>
+        @if (pokemon; as selected) {
+          <div class="build">
+          <article>
+            <h2>{{ selected.name }}</h2>
+            @if (selected.sprites.front_default && !spriteFailed) {
+              <img [src]="selected.sprites.front_default" [alt]="selected.name + ' sprite'" width="160" height="160" (error)="spriteFailed = true">
+            } @else {
+              <p>Sprite unavailable.</p>
+            }
+          </article>
+          <fieldset>
+            <legend>Moveset</legend>
+            @for (slot of [0, 1, 2, 3]; track slot) {
+              <label>Move {{ slot + 1 }}
+                <select #choice [value]="moveSlots[slot]" [disabled]="!availableMoves.length" (change)="selectMove(slot, choice.value)">
+                  <option value="">Choose move</option>
+                  @for (option of availableMoves; track option.move.url) {
+                    <option [value]="option.move.url" [disabled]="moveSlots[slot] !== option.move.url && moveSlots.includes(option.move.url)">
+                      {{ option.move.name.split('-').join(' ') }} · {{ option.methods.join(', ') }}
+                    </option>
+                  }
+                </select>
+              </label>
+            }
+            @if (!availableMoves.length) {
+              <p>PokéAPI lists no eligible moves for this Pokémon in the selected game.</p>
+            }
+          </fieldset>
+          </div>
+        }
+      </div>
+    }
+    <p role="status">{{ status }}</p>
+    @if (retry) { <button (click)="retry()">Retry</button> }
+  </section>
+  @if (coverage; as result) {
+    <section class="coverage" aria-labelledby="coverage-title">
+      <h2 id="coverage-title">Offensive coverage</h2>
+      @for (note of result.notes; track note) { <p class="note">{{ note }}</p> }
+      @if (result.message) { <p role="status">{{ result.message }}</p> }
+      @if (result.rows.length) {
+        <table>
+          <thead><tr><th scope="col">Best hit</th><th scope="col">Defending types and winning moves</th></tr></thead>
+          <tbody>
+            @for (row of result.rows; track row.label) {
+              <tr>
+                <th scope="row">{{ row.label }} <small>{{ row.entries.length }} matchups</small></th>
+                <td>
+                  <ul class="matchups">
+                    @for (entry of row.entries; track entry.defender) {
+                      <li>
+                        <div class="matchup-types">
+                          @for (type of entry.defender.split(' / '); track type) {
+                            <span class="type-badge" [attr.data-type]="type">{{ type }}</span>
+                          }
+                          <span class="multiplier">({{ entry.multiplier }}&times;)</span>
+                        </div>
+                        <ul class="winning-moves" aria-label="Winning moves">
+                          @for (move of entry.winners.split(', '); track move) {
+                            <li>{{ move }}</li>
+                          }
+                        </ul>
+                      </li>
+                    } @empty { <li>No matchups</li> }
+                  </ul>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+</main>
+
